@@ -9,6 +9,7 @@ import (
 
 type flakeModel struct {
 	flake *flake
+	err   string
 }
 
 func initialModel(flake *flake) flakeModel {
@@ -27,13 +28,22 @@ func (m flakeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
+		case "enter":
+			err := generateFlake(*m.flake, "new-flake.nix")
+			if err != nil {
+				m.err = err.Error()
+			}
 		}
+
 	}
 	return m, nil
 }
 
 func (m flakeModel) View() tea.View {
 	s := m.flake.toString()
+	if m.err != "" {
+		s += fmt.Sprintf("Error: %s\n", m.err)
+	}
 	s += "\nPress q to quit.\n"
 	return tea.NewView(s)
 }
@@ -43,7 +53,8 @@ func initInputs() tea.Model {
 	final := initialModel(&flake)
 	preConfigInput := initPreconfigInput(&flake, final)
 	direnvInput := initDirenvInput(&flake, preConfigInput)
-	channelInput := initChannelInput(&flake, direnvInput)
+	systemsInput := initSystemsInput(&flake, direnvInput)
+	channelInput := initChannelInput(&flake, systemsInput)
 	nameInput := initNameInput(&flake, channelInput)
 	return nameInput
 

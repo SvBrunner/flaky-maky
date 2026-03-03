@@ -7,6 +7,16 @@ type flake struct {
 	preconfigs   []preconfiguration
 	channel      string
 	direnvActive bool
+	systems      []string
+}
+
+type flakeData struct {
+	Description          string
+	Channel              string
+	Packages             []string
+	Systems              []string
+	ShellHooks           []string
+	EnvironmentVariables []envVariable
 }
 
 func (flake flake) toString() string {
@@ -20,6 +30,33 @@ func (flake flake) toString() string {
 	return s
 }
 
+func (flake flake) toDataModel() flakeData {
+	totalPackages := 0
+	totalEnvVariables := 0
+	for _, preconfig := range flake.preconfigs {
+		totalPackages += len(preconfig.packages)
+		totalEnvVariables += len(preconfig.environment)
+	}
+
+	allPackages := make([]string, 0, totalPackages)
+	allShellhooks := make([]string, 0, len(flake.preconfigs))
+	allEnvVariables := make([]envVariable, 0, totalEnvVariables)
+
+	for _, preconfig := range flake.preconfigs {
+		allPackages = append(allPackages, preconfig.packages...)
+		allShellhooks = append(allShellhooks, preconfig.shellhook)
+		allEnvVariables = append(allEnvVariables, preconfig.environment...)
+	}
+	return flakeData{
+		Channel:              flake.channel,
+		Description:          flake.name,
+		Systems:              flake.systems,
+		Packages:             allPackages,
+		ShellHooks:           allShellhooks,
+		EnvironmentVariables: allEnvVariables,
+	}
+}
+
 type preconfiguration struct {
 	name        string
 	packages    []string
@@ -28,8 +65,8 @@ type preconfiguration struct {
 }
 
 type envVariable struct {
-	name  string
-	value string
+	Name  string
+	Value string
 }
 
 func goConfig() preconfiguration {
@@ -38,8 +75,8 @@ func goConfig() preconfiguration {
 		packages: []string{"go", "gopls"},
 		environment: []envVariable{
 			{
-				name:  "GOPATH",
-				value: "/home/sven/go",
+				Name:  "GOPATH",
+				Value: "/home/sven/go",
 			},
 		},
 		shellhook: "go version",
