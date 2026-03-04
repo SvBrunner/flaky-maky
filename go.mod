@@ -1,6 +1,6 @@
 module github.com/SvBrunner/flaky-maky
 
-go 1.25.7
+go 1.25.6
 
 require (
 	charm.land/bubbles/v2 v2.0.0
