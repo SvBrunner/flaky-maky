@@ -1,6 +1,9 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Flake struct {
 	Name         string
@@ -19,15 +22,22 @@ type FlakeData struct {
 	EnvironmentVariables []EnvVariable
 }
 
-func (flake Flake) ToString() string {
-	s := fmt.Sprintf("Flake %s\n", flake.Name)
-	s += fmt.Sprintf("Channel : %s\n", flake.Channel)
-	s += fmt.Sprintf("Direnv active : %t\n", flake.DirenvActive)
-	s += "Preconfigurations : \n"
-	for _, config := range flake.Preconfigs {
-		s += fmt.Sprintf("%s\n", config.Name)
+func (f Flake) ToString() string {
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "Flake: %s\n", f.Name)
+	fmt.Fprintf(&b, "Channel: %s\n", f.Channel)
+	fmt.Fprintf(&b, "Direnv:  %t\n", f.DirenvActive)
+	b.WriteString("Systems:\n")
+	for _, s := range f.Systems {
+		fmt.Fprintf(&b, "  • %s\n", s)
 	}
-	return s
+	b.WriteString("Preconfigurations:\n")
+	for _, p := range f.Preconfigs {
+		fmt.Fprintf(&b, "  • %s\n", p.Name)
+	}
+
+	return b.String()
 }
 
 func (flake Flake) ToDataModel() FlakeData {
@@ -58,15 +68,15 @@ func (flake Flake) ToDataModel() FlakeData {
 }
 
 type Preconfiguration struct {
-	Name        string
-	Packages    []string
-	Environment []EnvVariable
-	Shellhook   string
+	Name        string        `yaml:"Name"`
+	Packages    []string      `yaml:"Packages"`
+	Environment []EnvVariable `yaml:"Environment"`
+	Shellhook   string        `yaml:"Shellhook"`
 }
 
 type EnvVariable struct {
-	Name  string
-	Value string
+	Name  string `yaml:"Name"`
+	Value string `yaml:"Value"`
 }
 
 func GoConfig() Preconfiguration {

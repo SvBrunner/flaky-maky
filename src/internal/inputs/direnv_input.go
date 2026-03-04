@@ -37,7 +37,7 @@ func (m DirenvInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m DirenvInput) View() tea.View {
 	return tea.NewView(
-		"\nDo you want a direnv in this directory? (y/n)\n\nPress ctrl+c to quit.",
+		"\nDo you want a direnv in this directory? (y/n)\n\nPress q to quit.",
 	)
 }
 

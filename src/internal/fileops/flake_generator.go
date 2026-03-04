@@ -2,19 +2,16 @@ package fileops
 
 import (
 	"os"
-	"strings"
 	"text/template"
 
 	"github.com/SvBrunner/flaky-maky/internal/models"
+	"github.com/SvBrunner/flaky-maky/internal/templates"
 )
 
 func GenerateFlake(flake models.Flake, path string) error {
 	data := flake.ToDataModel()
-	funcMap := template.FuncMap{
-		"join": strings.Join,
-	}
 
-	tpl, err := template.ParseFiles("flake-template.nix.tpl")
+	tpl, err := template.ParseFS(templates.FlakeTemplate, "flake-template.nix.tpl")
 
 	if err != nil {
 		return err
@@ -24,7 +21,6 @@ func GenerateFlake(flake models.Flake, path string) error {
 	if err != nil {
 		return err
 	}
-	tpl.Funcs(funcMap)
 
 	err = tpl.Execute(myFile, data)
 	if err != nil {

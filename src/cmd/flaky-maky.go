@@ -5,6 +5,7 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/SvBrunner/flaky-maky/internal/fileops"
 	"github.com/SvBrunner/flaky-maky/internal/inputs"
 	"github.com/SvBrunner/flaky-maky/internal/models"
 )
@@ -31,6 +32,7 @@ func initInputs() tea.Model {
 
 }
 func main() {
+	fileops.PopulatePreconfigs()
 	p := tea.NewProgram(initInputs())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)

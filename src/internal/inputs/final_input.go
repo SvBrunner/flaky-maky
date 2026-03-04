@@ -24,9 +24,11 @@ func (m FinalInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "enter":
-			err := fileops.GenerateFlake(*m.flake, "new-flake.nix")
+			err := fileops.GenerateFlake(*m.flake, "flake.nix")
 			if err != nil {
 				m.err = err.Error()
+			} else {
+				return m, tea.Quit
 			}
 		}
 
@@ -39,6 +41,7 @@ func (m FinalInput) View() tea.View {
 	if m.err != "" {
 		s += fmt.Sprintf("Error: %s\n", m.err)
 	}
+	s += "\nPress enter to create the flake\n"
 	s += "\nPress q to quit.\n"
 	return tea.NewView(s)
 }

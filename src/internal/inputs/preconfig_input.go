@@ -2,9 +2,11 @@ package inputs
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/SvBrunner/flaky-maky/internal/fileops"
 	"github.com/SvBrunner/flaky-maky/internal/models"
 )
 
@@ -18,8 +20,13 @@ type PreConfigInput struct {
 func (n *PreConfigInput) InitInput(flake *models.Flake, nextInput Input) {
 	n.flake = flake
 	n.nextModel = nextInput
-	n.options = []option{
-		{false, models.GoConfig()},
+	preconfigs, err := fileops.ReadPreconfigurations()
+	if err != nil {
+		log.Fatal(err)
+	}
+	n.options = make([]option, len(preconfigs))
+	for i, cfg := range preconfigs {
+		n.options[i] = option{false, cfg}
 	}
 }
 

@@ -2,37 +2,85 @@ package fileops
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/SvBrunner/flaky-maky/internal/models"
+	"github.com/SvBrunner/flaky-maky/internal/templates"
 	"gopkg.in/yaml.v3"
 )
 
-func ReadPreconfigurations(dirPath string) ([]models.Preconfiguration, error) {
-	files, err := os.ReadDir(dirPath)
+func resolveConfigPath() (string, error) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
 
+	return filepath.Join(configDir, "flaky-maky", "templates"), nil
+}
+
+func PopulatePreconfigs() error {
+	dir, err := resolveConfigPath()
+	if err != nil {
+		return err
+	}
+	os.MkdirAll(dir, 0755)
+	entries, err := templates.DefaultTemplates.ReadDir("templates")
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		dst := filepath.Join(dir, entry.Name())
+
+		if _, err := os.Stat(dst); err == nil {
+			continue
+		}
+
+		data, err := templates.DefaultTemplates.ReadFile("templates/" + entry.Name())
+		if err != nil {
+			return err
+		}
+
+		err = os.WriteFile(dst, data, 0644)
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+func ReadPreconfigurations() ([]models.Preconfiguration, error) {
+	dirPath, err := resolveConfigPath()
+	if err != nil {
+		return nil, err
+	}
+	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		return nil, err
 	}
 
-	preconfigs := make([]models.Preconfiguration, len(files))
+	preconfigs := make([]models.Preconfiguration, 0, len(entries))
 
-	for i, entry := range files {
-
-		if !entry.Type().IsRegular() {
+	for _, entry := range entries {
+		if entry.IsDir() {
 			continue
 		}
-		file, err := os.ReadFile(path.Join(dirPath, entry.Name()))
+
+		b, err := os.ReadFile(filepath.Join(dirPath, entry.Name()))
 		if err != nil {
 			return nil, err
 		}
-		data := models.Preconfiguration{}
 
-		err = yaml.Unmarshal(file, &data)
-		if err := yaml.Unmarshal(file, &data); err != nil {
+		var data models.Preconfiguration
+		if err := yaml.Unmarshal(b, &data); err != nil {
 			return nil, err
 		}
-		preconfigs[i] = data
+
+		preconfigs = append(preconfigs, data)
 	}
 
 	return preconfigs, nil

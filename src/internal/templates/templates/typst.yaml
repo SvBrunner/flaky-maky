@@ -1,0 +1,7 @@
+Name: Typst dev environment
+Packages:
+  - typst
+  - tinymist
+  - typstyle
+Environment:
+Shellhook: typst --version
