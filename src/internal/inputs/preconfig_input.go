@@ -1,39 +1,49 @@
-package main
+package inputs
 
 import (
 	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/SvBrunner/flaky-maky/internal/models"
 )
 
-type systemsInput struct {
+type PreConfigInput struct {
 	nextModel tea.Model
-	flake     *flake
-	options   []systemOption
+	flake     *models.Flake
+	options   []option
 	cursor    int
 }
-type systemOption struct {
-	selected bool
-	system   string
+
+func (n *PreConfigInput) InitInput(flake *models.Flake, nextInput Input) {
+	n.flake = flake
+	n.nextModel = nextInput
+	n.options = []option{
+		{false, models.GoConfig()},
+	}
 }
 
-func selectedSystems(opts []systemOption) []string {
-	var result []string
+type option struct {
+	selected bool
+	config   models.Preconfiguration
+}
+
+func selectedConfigs(opts []option) []models.Preconfiguration {
+	var result []models.Preconfiguration
 
 	for _, opt := range opts {
 		if opt.selected {
-			result = append(result, opt.system)
+			result = append(result, opt.config)
 		}
 	}
 
 	return result
 }
-func (n systemsInput) Init() tea.Cmd {
+func (n PreConfigInput) Init() tea.Cmd {
 	return nil
 }
 
-func (m systemsInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m PreConfigInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyPressMsg:
@@ -56,14 +66,14 @@ func (m systemsInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "space":
 			m.options[m.cursor].selected = !m.options[m.cursor].selected
 		case "enter":
-			m.flake.systems = selectedSystems(m.options)
+			m.flake.Preconfigs = selectedConfigs(m.options)
 			return m.nextModel, nil
 		}
 	}
 	return m, nil
 }
 
-func (m systemsInput) View() tea.View {
+func (m PreConfigInput) View() tea.View {
 	var s strings.Builder
 	s.WriteString("Which preconfigurations do you want?\n\n")
 
@@ -79,7 +89,7 @@ func (m systemsInput) View() tea.View {
 			checked = "x"
 		}
 
-		s.WriteString(fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.system))
+		s.WriteString(fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.config.Name))
 	}
 
 	s.WriteString("\nPress q to quit.\n")
@@ -87,17 +97,4 @@ func (m systemsInput) View() tea.View {
 	return tea.NewView(s.String())
 }
 
-var _ tea.Model = initDirenvInput(nil, nil)
-
-func initSystemsInput(flake *flake, nextModel tea.Model) systemsInput {
-	return systemsInput{
-		flake:     flake,
-		nextModel: nextModel,
-		options: []systemOption{
-			{false, "x86_64-linux"},
-			{false, "aarch64-linux"},
-			{false, "x86_64-darwin"},
-			{false, "aarch64-darwin"},
-		},
-	}
-}
+var _ Input = (*PreConfigInput)(nil)

@@ -1,13 +1,15 @@
-package main
+package generator
 
 import (
 	"os"
 	"strings"
 	"text/template"
+
+	"github.com/SvBrunner/flaky-maky/internal/models"
 )
 
-func generateFlake(flake flake, path string) error {
-	data := flake.toDataModel()
+func GenerateFlake(flake models.Flake, path string) error {
+	data := flake.ToDataModel()
 	funcMap := template.FuncMap{
 		"join": strings.Join,
 	}
@@ -33,7 +35,7 @@ func generateFlake(flake flake, path string) error {
 		return err
 	}
 
-	if flake.direnvActive {
+	if flake.DirenvActive {
 		err = generateDirenv()
 	}
 	return err

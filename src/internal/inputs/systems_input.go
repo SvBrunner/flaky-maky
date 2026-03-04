@@ -1,39 +1,52 @@
-package main
+package inputs
 
 import (
 	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/SvBrunner/flaky-maky/internal/models"
 )
 
-type preconfigInput struct {
+type SystemInput struct {
 	nextModel tea.Model
-	flake     *flake
-	options   []option
+	flake     *models.Flake
+	options   []systemOption
 	cursor    int
 }
-type option struct {
-	selected bool
-	config   preconfiguration
+
+func (n *SystemInput) InitInput(flake *models.Flake, nextInput Input) {
+	n.flake = flake
+	n.nextModel = nextInput
+	n.options = []systemOption{
+		{false, "x86_64-linux"},
+		{false, "aarch64-linux"},
+		{false, "x86_64-darwin"},
+		{false, "aarch64-darwin"},
+	}
 }
 
-func selectedConfigs(opts []option) []preconfiguration {
-	var result []preconfiguration
+type systemOption struct {
+	selected bool
+	system   string
+}
+
+func selectedSystems(opts []systemOption) []string {
+	var result []string
 
 	for _, opt := range opts {
 		if opt.selected {
-			result = append(result, opt.config)
+			result = append(result, opt.system)
 		}
 	}
 
 	return result
 }
-func (n preconfigInput) Init() tea.Cmd {
+func (n SystemInput) Init() tea.Cmd {
 	return nil
 }
 
-func (m preconfigInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m SystemInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyPressMsg:
@@ -56,14 +69,14 @@ func (m preconfigInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "space":
 			m.options[m.cursor].selected = !m.options[m.cursor].selected
 		case "enter":
-			m.flake.preconfigs = selectedConfigs(m.options)
+			m.flake.Systems = selectedSystems(m.options)
 			return m.nextModel, nil
 		}
 	}
 	return m, nil
 }
 
-func (m preconfigInput) View() tea.View {
+func (m SystemInput) View() tea.View {
 	var s strings.Builder
 	s.WriteString("Which preconfigurations do you want?\n\n")
 
@@ -79,7 +92,7 @@ func (m preconfigInput) View() tea.View {
 			checked = "x"
 		}
 
-		s.WriteString(fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.config.name))
+		s.WriteString(fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.system))
 	}
 
 	s.WriteString("\nPress q to quit.\n")
@@ -87,14 +100,4 @@ func (m preconfigInput) View() tea.View {
 	return tea.NewView(s.String())
 }
 
-var _ tea.Model = initDirenvInput(nil, nil)
-
-func initPreconfigInput(flake *flake, nextModel tea.Model) preconfigInput {
-	return preconfigInput{
-		flake:     flake,
-		nextModel: nextModel,
-		options: []option{
-			{false, goConfig()},
-		},
-	}
-}
+var _ Input = (*SystemInput)(nil)

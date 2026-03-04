@@ -1,25 +1,41 @@
-package main
+package inputs
 
 import (
 	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/SvBrunner/flaky-maky/internal/models"
 )
 
-type channelInput struct {
-	nextModel       tea.Model
-	flake           *flake
-	channels        []string
+type channel struct {
+	name string
+	url  string
+}
+
+type ChannelInput struct {
+	nextModel       Input
+	flake           *models.Flake
+	channels        []channel
 	selectedChannel int
 	cursor          int
 }
 
-func (n channelInput) Init() tea.Cmd {
+func (n *ChannelInput) InitInput(flake *models.Flake, nextInput Input) {
+	n.flake = flake
+	n.nextModel = nextInput
+	n.channels = []channel{
+		{name: "unstable", url: "github:NixOS/nixpkgs/nixos-unstable"},
+		{name: "25.11", url: "github:NixOS/nixpkgs/nixos-25.11"},
+	}
+
+}
+
+func (n ChannelInput) Init() tea.Cmd {
 	return nil
 }
 
-func (m channelInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m ChannelInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyPressMsg:
@@ -42,14 +58,14 @@ func (m channelInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "space":
 			m.selectedChannel = m.cursor
 		case "enter":
-			m.flake.channel = m.channels[m.selectedChannel]
+			m.flake.Channel = m.channels[m.selectedChannel].url
 			return m.nextModel, nil
 		}
 	}
 	return m, nil
 }
 
-func (m channelInput) View() tea.View {
+func (m ChannelInput) View() tea.View {
 	var s strings.Builder
 	s.WriteString("Which channel do you want?\n\n")
 
@@ -65,7 +81,7 @@ func (m channelInput) View() tea.View {
 			checked = "x"
 		}
 
-		s.WriteString(fmt.Sprintf("%s [%s] %s\n", cursor, checked, channel))
+		s.WriteString(fmt.Sprintf("%s [%s] %s\n", cursor, checked, channel.name))
 	}
 
 	s.WriteString("\nPress q to quit.\n")
@@ -73,15 +89,4 @@ func (m channelInput) View() tea.View {
 	return tea.NewView(s.String())
 }
 
-var _ tea.Model = initDirenvInput(nil, nil)
-
-func initChannelInput(flake *flake, nextModel tea.Model) channelInput {
-	return channelInput{
-		flake:     flake,
-		nextModel: nextModel,
-		channels: []string{
-			"unstable",
-			"25.11",
-		},
-	}
-}
+var _ Input = (*ChannelInput)(nil)
