@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/SvBrunner/flaky-maky/internal/generator"
+	"github.com/SvBrunner/flaky-maky/internal/fileops"
 	"github.com/SvBrunner/flaky-maky/internal/models"
 )
 
@@ -24,7 +24,7 @@ func (m FinalInput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "enter":
-			err := generator.GenerateFlake(*m.flake, "new-flake.nix")
+			err := fileops.GenerateFlake(*m.flake, "new-flake.nix")
 			if err != nil {
 				m.err = err.Error()
 			}

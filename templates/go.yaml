@@ -1,0 +1,8 @@
+Name: Go dev environment
+Packages:
+  - go
+  - gopls
+Environment:
+  - Name: GOPATH
+    Value: "/home/sven/go"
+Shellhook: go version
