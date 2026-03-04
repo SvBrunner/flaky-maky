@@ -22,7 +22,7 @@
             ];
 
             env = { {{range.EnvironmentVariables}}
-              {{.Name}} = "{{.Value}}"{{end}}
+              {{.Name}} = "{{.Value}}";{{end}}
             };
 
             shellHook = ''{{range .ShellHooks}}
