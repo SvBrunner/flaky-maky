@@ -1,11 +1,13 @@
 package fileops
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/SvBrunner/flaky-maky/internal/models"
-	"github.com/SvBrunner/flaky-maky/internal/templates"
+	"github.com/SvBrunner/flaky-maky/internal/registry"
 	"gopkg.in/yaml.v3"
 )
 
@@ -23,34 +25,84 @@ func PopulatePreconfigs() error {
 	if err != nil {
 		return err
 	}
-	os.MkdirAll(dir, 0755)
-	entries, err := templates.DefaultTemplates.ReadDir("templates")
+	// Just ensure the directory exists
+	return os.MkdirAll(dir, 0755)
+}
+
+// SyncPreconfigs fetches configurations from configured registry servers
+func SyncPreconfigs() error {
+	// Load server configuration
+	serversConfig, err := registry.LoadServerConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load server configuration: %w", err)
+	}
+
+	enabledServers := serversConfig.GetEnabledServers()
+	if len(enabledServers) == 0 {
+		return fmt.Errorf("no enabled servers found in configuration")
+	}
+
+	configDir, err := resolveConfigPath()
 	if err != nil {
 		return err
 	}
 
-	for _, entry := range entries {
-		if entry.IsDir() {
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	downloaded := 0
+	upToDate := 0
+	failed := 0
+
+	for _, server := range enabledServers {
+		client := registry.NewClient(server.URL, 30*time.Second)
+
+		// Fetch list of available configs
+		configs, err := client.ListConfigs()
+		if err != nil {
+			fmt.Printf("⚠ Warning: Failed to fetch config list from %s: %v\n", server.Name, err)
+			failed++
 			continue
 		}
 
-		dst := filepath.Join(dir, entry.Name())
+		// Download each config
+		for _, config := range configs {
+			filename := config.Name
+			filePath := filepath.Join(configDir, filename)
 
-		if _, err := os.Stat(dst); err == nil {
-			continue
-		}
+			// Check if file exists locally
+			var localData []byte
+			if _, err := os.Stat(filePath); err == nil {
+				localData, _ = os.ReadFile(filePath)
+			}
 
-		data, err := templates.DefaultTemplates.ReadFile("templates/" + entry.Name())
-		if err != nil {
-			return err
-		}
+			// Fetch from server (will overwrite on re-sync)
+			data, _, wasModified, err := client.GetConfig(filename, localData)
+			if err != nil {
+				fmt.Printf("⚠ Warning: Failed to fetch %s from %s: %v\n", filename, server.Name, err)
+				failed++
+				continue
+			}
 
-		err = os.WriteFile(dst, data, 0644)
-		if err != nil {
-			return err
+			if !wasModified {
+				upToDate++
+				continue
+			}
+
+			// Write config file
+			if err := os.WriteFile(filePath, data, 0644); err != nil {
+				fmt.Printf("⚠ Warning: Failed to write %s: %v\n", filename, err)
+				failed++
+				continue
+			}
+
+			downloaded++
 		}
 	}
-	return err
+
+	fmt.Printf("Sync complete: %d downloaded, %d up-to-date, %d failed\n", downloaded, upToDate, failed)
+	return nil
 }
 
 func ReadPreconfigurations() ([]models.Preconfiguration, error) {
